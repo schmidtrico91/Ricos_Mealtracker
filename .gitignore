@@ -30,6 +30,8 @@ backend/data/uploads/
 ios/App/Pods/
 android/key.properties
 android/release.keystore
+android/keystore/
+cloudflare-worker/.wrangler/tmp/
 
 # Editor directories and files
 .vscode/*
