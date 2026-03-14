@@ -17,7 +17,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Compute clean version
         id: version
@@ -28,13 +28,13 @@ jobs:
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
 
       - name: Setup Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: "temurin"
           java-version: "17"
@@ -42,12 +42,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Patch Capacitor App ProGuard file for AGP 9
+      - name: Normalize Capacitor plugin versions for CI
+        run: npm install --no-save @capacitor/app@^7.4.2 @capacitor/core@^7.4.2 @capacitor/android@^7.4.2
+
+      - name: Patch old ProGuard defaults for AGP 9
         run: |
-          FILE="node_modules/@capacitor/app/android/build.gradle"
-          if [ -f "$FILE" ]; then
-            sed -i "s/proguard-android.txt/proguard-android-optimize.txt/g" "$FILE"
-          fi
+          set -euo pipefail
+          grep -RIl "proguard-android.txt" node_modules/@capacitor 2>/dev/null | while read -r file; do
+            sed -i "s/proguard-android.txt/proguard-android-optimize.txt/g" "$file"
+          done
 
       - name: Configure signing keystore
         env:
