@@ -28,7 +28,10 @@ export default function SettingsPanel({ isOpen, onClose, userProfile, onProfileU
   const { t } = useTranslation(userProfile?.language || 'en');
 
   const currentAppVersion = String(import.meta.env.VITE_APP_VERSION || '0.0.0');
-  const updateManifestUrl = String(import.meta.env.VITE_UPDATE_MANIFEST_URL || '/app-update-manifest.json').trim();
+  const updateManifestUrl = String(
+    import.meta.env.VITE_UPDATE_MANIFEST_URL ||
+      'https://raw.githubusercontent.com/schmidtrico91/Ricos_Mealtracker/main/public/app-update-manifest.json'
+  ).trim();
 
   const normalizeVersion = (value) =>
     String(value || '')
