@@ -68,8 +68,8 @@ jobs:
           VITE_UPDATE_MANIFEST_URL: https://raw.githubusercontent.com/${{ github.repository }}/${{ github.event.repository.default_branch }}/public/app-update-manifest.json
         run: npm run build
 
-      - name: Copy web assets into Android project
-        run: npm run cap:copy
+      - name: Sync Capacitor Android project
+        run: npm run cap:sync:android
 
       - name: Prepare Gradle wrapper for Linux runner
         run: |
