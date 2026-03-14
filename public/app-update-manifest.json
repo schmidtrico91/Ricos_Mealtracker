@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
-  "apk_url": "https://example.com/releases/rico-mealtracker-v1.0.0.apk",
-  "notes": "Beispiel-Manifest fuer In-App-Update-Check."
+  "version": "1.0.7",
+  "apk_url": "https://github.com/schmidtrico91/Ricos_Mealtracker/releases/download/v1.0.7/RicosMealtracker-1.0.7.apk",
+  "notes": "Auto-published from GitHub Actions tag v1.0.7"
 }
