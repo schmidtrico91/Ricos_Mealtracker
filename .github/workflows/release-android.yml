@@ -42,6 +42,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Patch Capacitor App ProGuard file for AGP 9
+        run: |
+          FILE="node_modules/@capacitor/app/android/build.gradle"
+          if [ -f "$FILE" ]; then
+            sed -i "s/proguard-android.txt/proguard-android-optimize.txt/g" "$FILE"
+          fi
+
       - name: Configure signing keystore
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
