@@ -8,6 +8,9 @@ on:
 permissions:
   contents: write
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 jobs:
   build-release:
     runs-on: ubuntu-latest
@@ -66,6 +69,11 @@ jobs:
 
       - name: Copy web assets into Android project
         run: npm run cap:copy
+
+      - name: Prepare Gradle wrapper for Linux runner
+        run: |
+          sed -i 's/\r$//' android/gradlew
+          chmod +x android/gradlew
 
       - name: Build Android release APK
         working-directory: android
