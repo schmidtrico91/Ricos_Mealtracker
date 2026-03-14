@@ -1,0 +1,7 @@
+name = "fittrack-pro-ai"
+main = "src/index.js"
+compatibility_date = "2025-02-01"
+workers_dev = true
+
+[ai]
+binding = "AI"

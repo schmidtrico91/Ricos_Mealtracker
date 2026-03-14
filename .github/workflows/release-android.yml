@@ -1,0 +1,122 @@
+name: Android Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Compute clean version
+        id: version
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          CLEAN="${TAG#v}"
+          echo "clean=$CLEAN" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Configure signing keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ] || [ -z "$ANDROID_KEYSTORE_PASSWORD" ] || [ -z "$ANDROID_KEY_ALIAS" ] || [ -z "$ANDROID_KEY_PASSWORD" ]; then
+            echo "Missing Android signing secrets. Please set ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD."
+            exit 1
+          fi
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > android/release.keystore
+          cat > android/key.properties <<EOF
+          storeFile=release.keystore
+          storePassword=$ANDROID_KEYSTORE_PASSWORD
+          keyAlias=$ANDROID_KEY_ALIAS
+          keyPassword=$ANDROID_KEY_PASSWORD
+          EOF
+
+      - name: Build web assets
+        env:
+          VITE_APP_VERSION: ${{ steps.version.outputs.clean }}
+          VITE_UPDATE_MANIFEST_URL: https://raw.githubusercontent.com/${{ github.repository }}/${{ github.event.repository.default_branch }}/public/app-update-manifest.json
+        run: npm run build
+
+      - name: Copy web assets into Android project
+        run: npm run cap:copy
+
+      - name: Build Android release APK
+        working-directory: android
+        run: ./gradlew assembleRelease --stacktrace
+
+      - name: Rename APK artifact
+        id: apk
+        run: |
+          CLEAN="${{ steps.version.outputs.clean }}"
+          APK_NAME="RicosMealtracker-${CLEAN}.apk"
+          cp android/app/build/outputs/apk/release/app-release.apk "$APK_NAME"
+          echo "name=$APK_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          files: ${{ steps.apk.outputs.name }}
+          generate_release_notes: true
+
+      - name: Update public app-update manifest on default branch
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          TAG="${{ steps.version.outputs.tag }}"
+          CLEAN="${{ steps.version.outputs.clean }}"
+          APK_NAME="${{ steps.apk.outputs.name }}"
+          REPO="${{ github.repository }}"
+          DEFAULT_BRANCH="${{ github.event.repository.default_branch }}"
+          APK_URL="https://github.com/${REPO}/releases/download/${TAG}/${APK_NAME}"
+
+          git fetch origin "$DEFAULT_BRANCH"
+          git checkout "$DEFAULT_BRANCH"
+
+          cat > public/app-update-manifest.json <<EOF
+          {
+            "version": "${CLEAN}",
+            "apk_url": "${APK_URL}",
+            "notes": "Auto-published from GitHub Actions tag ${TAG}"
+          }
+          EOF
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if git diff --quiet -- public/app-update-manifest.json; then
+            echo "Manifest already up to date."
+            exit 0
+          fi
+
+          git add public/app-update-manifest.json
+          git commit -m "chore: update app manifest for ${TAG}"
+          git push origin "$DEFAULT_BRANCH"

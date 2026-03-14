@@ -1,0 +1,9 @@
+{
+  "entities": {
+    "UserProfile": [],
+    "Food": [],
+    "FoodLog": [],
+    "SearchHistory": []
+  },
+  "logs": []
+}
