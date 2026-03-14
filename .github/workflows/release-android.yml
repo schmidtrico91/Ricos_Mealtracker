@@ -42,9 +42,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Normalize Capacitor plugin versions for CI
-        run: npm install --no-save @capacitor/app@^7.4.2 @capacitor/core@^7.4.2 @capacitor/android@^7.4.2
-
       - name: Patch old ProGuard defaults for AGP 9
         run: |
           set -euo pipefail
